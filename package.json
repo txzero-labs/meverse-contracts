@@ -1,0 +1,14 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts and utilities for MeVerse",
+  "keywords": [
+    "Smart contracts",
+    "Immutable X",
+    "Solidity"
+  ],
+  "author": "Predrag Njegovanovic",
+  "dependencies": {
+    "@imtbl/imx-contracts": "^1.0.0"
+  }
+}
