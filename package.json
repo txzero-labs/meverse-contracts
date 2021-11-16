@@ -9,6 +9,7 @@
   ],
   "author": "Predrag Njegovanovic",
   "dependencies": {
-    "@imtbl/imx-contracts": "^1.0.0"
+    "@imtbl/imx-contracts": "^1.0.0",
+    "@openzeppelin/contracts": "^4.3.2"
   }
 }
