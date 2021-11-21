@@ -1,0 +1,17 @@
+{
+    "metadata": [
+        {
+            "name": "name"
+        },
+        {
+            "name": "description"
+        },
+        {
+            "name": "image_url"
+        },
+        {
+            "name": "example_property",
+            "type": "boolean"
+        }
+    ]
+}

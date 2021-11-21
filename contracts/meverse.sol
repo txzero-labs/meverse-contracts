@@ -1,4 +1,4 @@
-// SPDX-Licence-Identifier: MIT
+// SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.4;
 
@@ -20,7 +20,7 @@ contract MeVerse is ERC721, Mintable {
         address _imxAddress,
         string memory _initMetadataURI
         ) ERC721(_collectionName, _collectionSymbol) Mintable(_ownerAddress, _imxAddress) {
-            setMetadataBaseURI(_initMetadataURI);
+            baseMetadataURI = _initMetadataURI;
             availableNFTs = 10000;
             mintedNFTs = 0;
             maxTokensPerWallet = 10;

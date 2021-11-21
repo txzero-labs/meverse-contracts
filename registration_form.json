@@ -1,0 +1,11 @@
+{
+    "network": "<CHANGE_ME>",
+    "name": "<CHANGE_ME>",
+    "description": "<CHANGE_ME>",
+    "owner_public_key": "<CHANGE_ME>",
+    "owner_address": "<CHANGE_ME>",
+    "contract_address": "<CHANGE_ME>",
+    "metadata_api_url": "<CHANGE_ME>",
+    "icon_url": "<CHANGE_ME>",
+    "collection_image_url": "<CHANGE_ME>"
+}

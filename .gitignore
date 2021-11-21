@@ -30,5 +30,7 @@ node_modules/
 
 /.env
 
+/registration_form_filled.json
+
 /artifacts
 /cache
