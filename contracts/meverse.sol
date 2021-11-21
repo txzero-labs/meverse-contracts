@@ -11,7 +11,6 @@ contract MeVerse is ERC721, Mintable {
     uint256 public availableNFTs;
     uint256 public mintedNFTs;
     uint256 public maxTokensPerWallet;
-    mapping(address => uint256) walletTokens;
 
     constructor(
         address _ownerAddress, 
@@ -44,13 +43,20 @@ contract MeVerse is ERC721, Mintable {
         baseMetadataURI = _newMetadataURI;
     }
 
+    function ownerOf(uint256 tokenId) public override view returns (address) {
+        return super.ownerOf(tokenId);
+    }
+
+    function balanceOf(address tokenOwner) public override view returns (uint256) {
+        return super.balanceOf(tokenOwner);
+    }
+
     /// @notice Mint one NFT to destination address with specified token id.
-    function _mintFor(address to, uint256 id, bytes calldata blueprint) internal override {
+    function _mintFor(address to, uint256 id, bytes memory blueprint) internal override {
         uint256 supply = totalSupply();
         require(supply <= availableNFTs, "Maximum available NFTs exceeded.");
-        require(walletTokens[to] <= maxTokensPerWallet, "Maximum tokens to mint reached.");
-        _safeMint(to, id);
-        walletTokens[to]++;
+        require(balanceOf(to) <= maxTokensPerWallet, "Maximum tokens to mint reached.");
+        super._safeMint(to, id);
         mintedNFTs++;
     }
 }

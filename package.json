@@ -20,6 +20,7 @@
     "@typechain/ethers-v5": "^8.0.2",
     "@typechain/hardhat": "^3.0.0",
     "@types/node": "^16.11.7",
+    "chai": "^4.3.4",
     "ethers": "^5.5.1",
     "hardhat": "^2.6.8",
     "ts-node": "^10.4.0",
