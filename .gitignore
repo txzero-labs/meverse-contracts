@@ -30,7 +30,7 @@ node_modules/
 
 /.env
 
-/registration_form_filled.json
+/deployment_details_filled.json
 
 /artifacts
 /cache

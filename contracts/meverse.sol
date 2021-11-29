@@ -3,60 +3,47 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@imtbl/imx-contracts/contracts/Mintable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract MeVerse is ERC721, Mintable {
-
+contract MeVerse is ERC721, Ownable {
     string public baseMetadataURI;
-    uint256 public availableNFTs;
-    uint256 public mintedNFTs;
-    uint256 public maxTokensPerWallet;
+    uint256 public availableNFTs = 10000;
+    uint256 public mintedNFTs = 0;
+    uint256 public maxTokensPerWallet = 10;
+    uint256 public cost = 0.073 ether;
 
     constructor(
-        address _ownerAddress, 
         string memory _collectionName, 
         string memory _collectionSymbol, 
-        address _imxAddress,
         string memory _initMetadataURI
-        ) ERC721(_collectionName, _collectionSymbol) Mintable(_ownerAddress, _imxAddress) {
+        ) ERC721(_collectionName, _collectionSymbol) {
             baseMetadataURI = _initMetadataURI;
-            availableNFTs = 10000;
-            mintedNFTs = 0;
-            maxTokensPerWallet = 10;
         }
 
     function _baseURI() internal view virtual override returns (string memory) {
         return baseMetadataURI;
     }
 
-    /// @notice Count NFTs tracked by this contract.
-    /// @return A count of valid NFTs tracked by this contract.
-    function totalSupply() public view returns (uint256) {
-        return mintedNFTs;
-    }
-
     function availableTokens() public view returns (uint256) {
-        return availableNFTs;
+        return availableNFTs - mintedNFTs;
     }
 
     function setMetadataBaseURI(string memory _newMetadataURI) public onlyOwner {
         baseMetadataURI = _newMetadataURI;
     }
 
-    function ownerOf(uint256 tokenId) public override view returns (address) {
-        return super.ownerOf(tokenId);
-    }
+    function mint(uint256 id, uint256 mintAmount) public payable onlyOwner {
+        require(mintAmount == 1, "Only 1 NFT can be minted.");
 
-    function balanceOf(address tokenOwner) public override view returns (uint256) {
-        return super.balanceOf(tokenOwner);
-    }
+        require(mintedNFTs + mintAmount <= availableNFTs, "Maximum available NFTs exceeded.");
+        require(balanceOf(msg.sender) <= maxTokensPerWallet, "Maximum tokens to mint reached.");
 
-    /// @notice Mint one NFT to destination address with specified token id.
-    function _mintFor(address to, uint256 id, bytes memory blueprint) internal override {
-        uint256 supply = totalSupply();
-        require(supply <= availableNFTs, "Maximum available NFTs exceeded.");
-        require(balanceOf(to) <= maxTokensPerWallet, "Maximum tokens to mint reached.");
-        super._safeMint(to, id);
+        require(msg.value >= cost * mintAmount, "Not enough funds to mind token.");
+        _safeMint(msg.sender, id);
         mintedNFTs++;
+    }
+
+    function contractBalance() external view onlyOwner returns (uint256) {
+        return address(this).balance;
     }
 }

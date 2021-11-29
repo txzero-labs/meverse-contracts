@@ -1,73 +1,63 @@
 const { expect } = require('chai');
-const exp = require('constants');
 const { ethers } = require('hardhat');
 
 describe("MeVerse contract tests", function (){
 
-    it("Should not be able to mint from non IMX address", async function () {
-        const [owner, _fakeIMX] = await ethers.getSigners();
-
-        const MeVerse = await ethers.getContractFactory('MeVerse');
-
-        const name = 'TestOwner';
-        const symbol = "TO";
-        const baseURI = "https://test.io";
-
-        const mintable = await MeVerse.deploy(owner.address, name, symbol, _fakeIMX.address, baseURI);
-
-        await expect(mintable.mintFor(owner.address, 1, '')).to.be.reverted;
-
-    });
-
     it("Should be owned by the deployer", async function () {
-        const [deployer, _fakeIMX] = await ethers.getSigners();
-
-        const MeVerse = await ethers.getContractFactory('MeVerse');
-
-        const name = 'TestOwner';
-        const symbol = 'TO';
-        const baseURI = "https://test.io";
-
-        const mintable = await MeVerse.deploy(deployer.address, name, symbol, _fakeIMX.address, baseURI);
-
-        expect(await mintable.owner()).to.equal(deployer.address);
-
-    });
-
-    it("Should mint token with empty blueprint", async function () {
         const [deployer] = await ethers.getSigners();
 
         const MeVerse = await ethers.getContractFactory('MeVerse');
 
         const name = 'TestOwner';
         const symbol = 'TO';
-        const baseURI = "https://test.io";
-        const tokenId = 1;
-        const blueprint = '';
-        const blob = toHex(`{${tokenId}}:{${blueprint}}`);
+        const baseURI = "https://test.io/";
 
-        const mintable = await MeVerse.deploy(deployer.address, name, symbol, deployer.address, baseURI);
-        await mintable.mintFor(deployer.address, tokenId, blob);
+        const mintable = await MeVerse.deploy(name, symbol, baseURI);
 
-        const tokenOwner = await mintable.ownerOf(tokenId);
-
-        await expect(tokenOwner).to.equal(deployer.address);
+        expect(await mintable.owner()).to.equal(deployer.address);
 
     });
 
-    it("Should revert mint with invalid blueprint", async function () {
+    it("Should revert mint when transfer amount is not specified", async function () {
+        const [deployer] = await ethers.getSigners();
+
+        const MeVerse = await ethers.getContractFactory('MeVerse');
+
+        const name = 'TestOwner';
+        const symbol = 'TO';
+        const baseURI = "https://test.io/";
+        const tokenId = 1;
+
+        const mintable = await MeVerse.deploy(name, symbol, baseURI);
+        await expect(mintable.mint(tokenId, 2)).to.be.reverted;
+    });
+
+    it("Should revert mint when amount is higher then 1", async function () {
+        const [deployer] = await ethers.getSigners();
+
+        const MeVerse = await ethers.getContractFactory('MeVerse');
+
+        const name = 'TestOwner';
+        const symbol = 'TO';
+        const baseURI = "https://test.io/";
+        const tokenId = 1;
+
+        const mintable = await MeVerse.deploy(name, symbol, baseURI);
+        await expect(mintable.mint(tokenId, 2, {value: ethers.utils.parseEther("1.0")})).to.be.reverted;
+    });
+
+    it("Should revert mint when ether amount is not enough", async function () {
         const [deployer, _fakeIMX] = await ethers.getSigners();
 
         const MeVerse = await ethers.getContractFactory('MeVerse');
 
         const name = 'TestOwner';
         const symbol = 'TO';
-        const baseURI = "https://test.io";
-        const blueprint = toHex(':');
+        const baseURI = "https://test.io/";
 
 
-        const mintable = await MeVerse.deploy(deployer.address, name, symbol, _fakeIMX.address, baseURI);
-        await expect(mintable.mintFor(deployer.address, 1, blueprint)).to.be.reverted;
+        const mintable = await MeVerse.deploy(name, symbol, baseURI);
+        await expect(mintable.mint(1, 1, {value: ethers.utils.parseEther("0.0001")})).to.be.reverted;
     });
 
     it("Should increase mintedNFTs when mint happens", async function () {
@@ -77,16 +67,14 @@ describe("MeVerse contract tests", function (){
 
         const name = 'TestOwner';
         const symbol = 'TO';
-        const baseURI = "https://test.io";
+        const baseURI = "https://test.io/";
         const tokenId = 1;
-        const blueprint = 1000;
-        const blob = toHex(`{${tokenId}}:{${blueprint}}`);
 
 
-        const mintable = await MeVerse.deploy(deployer.address, name, symbol, deployer.address, baseURI);
-        await mintable.mintFor(deployer.address, 1, blob);
+        const mintable = await MeVerse.deploy(name, symbol, baseURI);
+        await mintable.mint(tokenId, 1, {value: ethers.utils.parseEther("1.0")});
 
-        expect(await mintable.totalSupply()).to.equal(1);
+        expect(await mintable.availableTokens()).to.equal(9999);
 
     });
 
@@ -97,55 +85,82 @@ describe("MeVerse contract tests", function (){
 
         const name = 'TestOwner';
         const symbol = 'TO';
-        const baseURI = "https://test.io";
-        const blueprint = 1000;
+        const baseURI = "https://test.io/";
 
 
-        const mintable = await MeVerse.deploy(deployer.address, name, symbol, deployer.address, baseURI);
+        const mintable = await MeVerse.deploy(name, symbol, baseURI);
         for (i = 0;i < 11;i++) {
-            const blob = toHex(`{${i}}:{${blueprint}}`);
-            await mintable.mintFor(deployer.address, 1, blob);
+            await mintable.mint(i + 1, 1, {value: ethers.utils.parseEther("1.0")});
         }
 
-        const blob = toHex(`{${12}}:{${blueprint}}`);
-
-        expect(await mintable.totalSupply()).to.equal(11);
-        await expect(mintable.mintFor(deployer.address, 1, blob)).to.be.reverted;
+        expect(await mintable.availableTokens()).to.equal(9989);
+        await expect(mintable.mint(12, 1, {value: ethers.utils.parseEther("1.0")})).to.be.reverted;
 
     });
 
-    it("Should emit AssetEmmited event when token is minted", async function() {
+    it("Should increase address balance after sucessful mint", async function() {
         const [deployer] = await ethers.getSigners();
 
         const MeVerse = await ethers.getContractFactory('MeVerse');
 
         const name = 'TestOwner';
         const symbol = 'TO';
-        const baseURI = "https://test.io";
+        const baseURI = "https://test.io/";
         const tokenId = 1;
-        const blueprint = 1000;
-        const blob = toHex(`{${tokenId}}:{${blueprint}}`);
 
 
-        const mintable = await MeVerse.deploy(deployer.address, name, symbol, deployer.address, baseURI);
-        await expect(mintable.mintFor(deployer.address, 1, blob)).to.emit(mintable, "AssetMinted");
+        const mintable = await MeVerse.deploy(name, symbol, baseURI);
+        await mintable.mint(tokenId, 1, {value: ethers.utils.parseEther("1.0")});
+
+        expect(Number(ethers.utils.formatUnits(await mintable.contractBalance()))).to.equal(1.0);
+    });
+
+    it("Should emit Transfer event when token is minted", async function() {
+        const [deployer] = await ethers.getSigners();
+
+        const MeVerse = await ethers.getContractFactory('MeVerse');
+
+        const name = 'TestOwner';
+        const symbol = 'TO';
+        const baseURI = "https://test.io/";
+        const tokenId = 1;
+
+
+        const mintable = await MeVerse.deploy(name, symbol, baseURI);
+        await expect(
+            mintable.mint(tokenId, 1, {value: ethers.utils.parseEther("1.0")}))
+                    .to
+                    .emit(mintable, "Transfer");
 
     });
-});
 
-function toHex(str) {
-    let result = '';
-    for (let i=0; i < str.length; i++) {
-      result += str.charCodeAt(i).toString(16);
-    }
-    return '0x' + result;
-  }
-  
-function fromHex(str1) {
-    let hex = str1.toString().substr(2);
-    let str = '';
-    for (let n = 0; n < hex.length; n += 2) {
-        str += String.fromCharCode(parseInt(hex.substr(n, 2), 16));
-    }
-    return str;
-}
+    it("Should revert tokenURI call when tokenId doesn't exist", async function() {
+        const [deployer] = await ethers.getSigners();
+
+        const MeVerse = await ethers.getContractFactory('MeVerse');
+
+        const name = 'TestOwner';
+        const symbol = 'TO';
+        const baseURI = "https://test.io/";
+        const tokenId = 1;
+
+        const mintable = await MeVerse.deploy(name, symbol, baseURI);
+        await expect(mintable.tokenURI(tokenId)).to.be.reverted;
+    });
+
+    it("Should return tokenURI when tokenId is exists", async function() {
+        const [deployer] = await ethers.getSigners();
+
+        const MeVerse = await ethers.getContractFactory('MeVerse');
+
+        const name = 'TestOwner';
+        const symbol = 'TO';
+        const baseURI = "https://test.io/";
+        const tokenId = 1;
+
+
+        const mintable = await MeVerse.deploy(name, symbol, baseURI);
+        await mintable.mint(tokenId, 1, {value: ethers.utils.parseEther("1.0")});
+        expect(await mintable.tokenURI(tokenId)).to.equal(baseURI + tokenId);
+    });
+});

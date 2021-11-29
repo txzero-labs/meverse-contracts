@@ -2,11 +2,28 @@ import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import * as dotenv from "dotenv";
+import "hardhat-contract-sizer";
+import "hardhat-gas-reporter";
 
 dotenv.config();
 
+
+
 module.exports = {
-    solidity: "0.8.4",
+    gasReporter: {
+        currency: 'USD',
+        gasPrice: 82,
+        coinmarketCap: process.env.COINMARKET_KEY_API
+    },
+    solidity: {
+        version: "0.8.4",
+        settings: {
+            optimizer: {
+                enabled: true,
+                runs: 500,
+            }
+        }
+    },
     networks: {
         ropsten: {
             url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
