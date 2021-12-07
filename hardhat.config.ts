@@ -12,7 +12,6 @@ dotenv.config();
 module.exports = {
     gasReporter: {
         currency: 'USD',
-        gasPrice: 82,
         coinmarketCap: process.env.COINMARKET_KEY_API
     },
     solidity: {
