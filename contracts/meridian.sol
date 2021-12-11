@@ -1,13 +1,8 @@
 // SPDX-License-Identifier: MIT
 
 // TODO: 
-// 1. freeMint [Done]
-// 2. tokenId++ [Done]
-// 3. map mapping walletAddr to tokenId [Done]
-// 4. function for getting tokenId based on walletAddr [Done]
-// 5. safeTransfer function for token transfer + approve [Done]
-// 6. map for rarity combination -> map for each trait = 6 maps with counters
-// 7. handle presale [Done]
+// traits validation 
+// existing combination tests
 
 pragma solidity ^0.8.4;
 
@@ -17,19 +12,49 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Meridian is ERC721, Ownable {
     string public baseMetadataURI;
 
-    uint256 public preSaleNFTs = 2500;
-    uint256 public preSaleMaxTokens = 5;
+    uint16 public preSaleNFTs = 2500;
+    uint8 public preSaleMaxTokens = 5;
     uint256 public preSaleCost = 0.06 ether;
 
-    uint256 public availableNFTs = 10000;
-    uint256 public mintedNFTs = 0;
-    uint256 public maxTokensPerWallet = 8;
+    uint16 public availableNFTs = 10000;
+    uint16 public mintedNFTs = 0;
+    uint8 public maxTokensPerWallet = 8;
     uint256 public cost = 0.07 ether;
 
     uint16 public tokenId;
     bool public preSaleActive;
     mapping(address => uint8) public freeMintAddr;
     mapping(address => uint16) public walletToToken;
+
+    // trait masks
+    bytes8 public groupMask = bytes8(uint64(0x38000000000));
+    bytes8 public founderMask = bytes8(uint64(0x4000000000));
+    bytes8 public backgroundMask = bytes8(uint64(0x3C00000000));
+    bytes8 public headMask = bytes8(uint64(0x3F0000000));
+    bytes8 public faceMask = bytes8(uint64(0x8000000));
+    bytes8 public chestMask = bytes8(uint64(0x7C00000));
+    bytes8 public poseMask = bytes8(uint64(0x300000));
+    bytes8 public legsMask = bytes8(uint64(0xF0000));
+    bytes8 public bootsMask = bytes8(uint64(0xF000));
+    bytes8 public accessoriesMask = bytes8(uint64(0xF00));
+    bytes8 public lHandMask = bytes8(uint64(0xF8));
+    bytes8 public rHandMask = bytes8(uint64(0x7));
+
+    // founder
+    uint16 public founders = 0;
+
+    // trait maps
+    mapping(uint64 => uint64) public groupMap;
+    mapping(uint64 => uint64) public headMap;
+    mapping(uint64 => uint64) public chestMap;
+    mapping(uint64 => uint64) public legsMap;
+    mapping(uint64 => uint64) public bootsMap;
+    mapping(uint64 => uint64) public handMap;
+    mapping(uint64 => uint64) public backgroundMap;
+
+    // minted traits and combinations
+    mapping(uint256 => bytes8) public tokenTraits;
+    mapping(uint64 => uint8) public existingCombinations;
 
     constructor(
         string memory _collectionName, 
@@ -51,6 +76,11 @@ contract Meridian is ERC721, Ownable {
         return walletToToken[wallet];
     }
 
+    function founder(uint256 tokenIdForCombination) public view returns (uint) {
+        uint64 traits = uint64(tokenTraits[tokenIdForCombination]);
+        return founderTraitIndex(traits);
+    }
+
     function setFreeMinter(address minter) public onlyOwner {
         freeMintAddr[minter] = 1;
     }
@@ -63,7 +93,13 @@ contract Meridian is ERC721, Ownable {
         preSaleActive = active;
     }
 
-    function mint() external payable {
+    function setMaximumTokensPerWallet(uint8 value) public onlyOwner {
+        maxTokensPerWallet = value;
+    }
+
+    function mint(uint64 traits) external payable {
+        require(existingCombinations[traits] == 0, "Combination of traits already minted.");
+
         uint8 mintAmount = 1;
 
         if (preSaleActive) {
@@ -78,21 +114,170 @@ contract Meridian is ERC721, Ownable {
             require(msg.value >= cost * mintAmount, "Not enough funds to mind token.");
         }
 
+        if ((mintedNFTs + 1) % 10 == 0) {
+            founders++;
+            traits = setFounderTrait(traits);
+        }
+
+        // decode 
+        uint64 groupTrait = groupTraitIndex(traits);
+        uint64 headTrait = headTraitIndex(traits);
+        uint64 chestTrait = chestTraitIndex(traits);
+        uint64 legsTrait = legsTraitIndex(traits);
+        uint64 bootsTrait = bootsTraitIndex(traits);
+        uint64 lhandTrait = lhandTraitIndex(traits);
+        uint64 rhandTrait = rhandTraitIndex(traits);
+        uint64 poseTrait = poseTraitIndex(traits);
+        uint64 accessoriesTrait = accessoriesTraitIndex(traits);
+        uint64 faceTrait = faceTraitIndex(traits);
+        uint64 backgroundTrait = backgroundTraitIndex(traits);
+
+        // right hand validation
+        if (groupTrait == 0 && poseTrait == 1 && rhandTrait > 3) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        if (groupTrait == 0 && poseTrait == 2 && rhandTrait > 1) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        if (groupTrait == 1 && poseTrait == 2 && rhandTrait > 4) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        if (groupTrait == 2 && poseTrait == 2 && rhandTrait > 4) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        if (groupTrait == 3 && poseTrait == 1 && rhandTrait > 6) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        if (groupTrait == 3 && poseTrait == 2 && rhandTrait > 3) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        if (groupTrait == 4 && poseTrait == 2 && rhandTrait > 3) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        // traits validation
+        require(groupTrait <= 4 && groupTrait >= 0, "Group trait not in required range.");
+        require(headTrait <= 38 && headTrait >= 0, "Head trait not in required range.");
+        require(chestTrait <= 18 && chestTrait >= 0, "Chest trait not in required range.");
+        require(legsTrait <= 14 && legsTrait >= 0, "Legs trait not in required range.");
+        require(bootsTrait <= 14 && bootsTrait >= 0, "Boots trait not in required range.");
+        require(lhandTrait <= 28 && lhandTrait >= 0, "Left hand trait not in required range.");
+        require(rhandTrait <= 7 && rhandTrait >= 0, "Right hand trait not in required range.");
+        require(backgroundTrait <= 10 && backgroundTrait >= 0, "Background trait not in required range.");
+        require(poseTrait <= 2 && poseTrait >= 0, "Pose trait not in required range.");
+        require(faceTrait <= 1 && faceTrait >= 0, "Face trait not in required range.");
+        require(accessoriesTrait <= 9 && accessoriesTrait >= 0, "Accessories trait not in required range.");
+
         _safeMint(msg.sender, tokenId);
+
+        // increment maps
+        groupMap[groupTrait]++;
+        headMap[headTrait]++;
+        chestMap[chestTrait]++;
+        legsMap[legsTrait]++;
+        bootsMap[bootsTrait]++;
+        handMap[lhandTrait]++;
+        backgroundMap[backgroundTrait]++;
+
+        tokenTraits[tokenId] = bytes8(traits);
+        existingCombinations[traits] = 1;
+
         walletToToken[msg.sender] = tokenId;
         mintedNFTs++;
         tokenId++;
     }
 
-    function freeMint() external {
+    function freeMint(uint64 traits) external {
         if (freeMintAddr[msg.sender] == 0) {
             revert();
         }
 
+        require(existingCombinations[traits] == 0, "Combination of traits already minted.");
+
         uint8 mintAmount = 1;
         require(mintedNFTs + mintAmount <= availableNFTs, "Maximum available NFTs exceeded.");
         require(balanceOf(msg.sender) <= maxTokensPerWallet, "Maximum tokens to mint reached.");
+
+        if (mintedNFTs % 10 == 0) {
+            founders++;
+            traits = setFounderTrait(traits);
+        }
+
+        // decode 
+        uint64 groupTrait = groupTraitIndex(traits);
+        uint64 headTrait = headTraitIndex(traits);
+        uint64 chestTrait = chestTraitIndex(traits);
+        uint64 legsTrait = legsTraitIndex(traits);
+        uint64 bootsTrait = bootsTraitIndex(traits);
+        uint64 lhandTrait = lhandTraitIndex(traits);
+        uint64 rhandTrait = rhandTraitIndex(traits);
+        uint64 backgroundTrait = backgroundTraitIndex(traits);
+        uint64 poseTrait = poseTraitIndex(traits);
+        uint64 accessoriesTrait = accessoriesTraitIndex(traits);
+        uint64 faceTrait = faceTraitIndex(traits);
+
+        // right hand validation
+        if (groupTrait == 0 && poseTrait == 1 && rhandTrait > 3) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        if (groupTrait == 0 && poseTrait == 2 && rhandTrait > 1) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        if (groupTrait == 1 && poseTrait == 2 && rhandTrait > 4) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        if (groupTrait == 2 && poseTrait == 2 && rhandTrait > 4) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        if (groupTrait == 3 && poseTrait == 1 && rhandTrait > 6) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        if (groupTrait == 3 && poseTrait == 2 && rhandTrait > 3) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        if (groupTrait == 4 && poseTrait == 2 && rhandTrait > 3) {
+            revert("Right hand item not valid for combination of group and pose.");
+        }
+
+        // traits validation
+        require(groupTrait <= 4 && groupTrait >= 0, "Group trait not in required range.");
+        require(headTrait <= 38 && headTrait >= 0, "Head trait not in required range.");
+        require(chestTrait <= 18 && chestTrait >= 0, "Chest trait not in required range.");
+        require(legsTrait <= 14 && legsTrait >= 0, "Legs trait not in required range.");
+        require(bootsTrait <= 14 && bootsTrait >= 0, "Boots trait not in required range.");
+        require(lhandTrait <= 29 && lhandTrait >= 0, "Left hand trait not in required range.");
+        require(backgroundTrait <= 10 && backgroundTrait >= 0, "Background trait not in required range.");
+        require(rhandTrait <= 7 && rhandTrait >= 0, "Right hand trait not in required range.");
+        require(poseTrait <= 2 && poseTrait >= 0, "Pose trait not in required range.");
+        require(faceTrait <= 1 && faceTrait >= 0, "Face trait not in required range.");
+        require(accessoriesTrait <= 9 && accessoriesTrait >= 0, "Accessories trait not in required range.");
+
         _safeMint(msg.sender, tokenId);
+
+        // increment maps
+        groupMap[groupTrait]++;
+        headMap[headTrait]++;
+        chestMap[chestTrait]++;
+        legsMap[legsTrait]++;
+        bootsMap[bootsTrait]++;
+        handMap[lhandTrait]++;
+        backgroundMap[backgroundTrait]++;
+
+        tokenTraits[tokenId] = bytes8(traits);
+        existingCombinations[traits] = 1;
+
         walletToToken[msg.sender] = tokenId;
         mintedNFTs++;
         tokenId++;
@@ -100,5 +285,59 @@ contract Meridian is ERC721, Ownable {
 
     function contractBalance() external view onlyOwner returns (uint256) {
         return address(this).balance;
+    }
+
+    function setFounderTrait(uint64 traits) internal view returns (uint64) {
+        return uint64(bytes8(traits) | founderMask);
+    }
+
+    // Internal trait decoding
+
+    function groupTraitIndex(uint64 traits) internal view returns (uint64) {
+        return uint64((bytes8(traits) & groupMask) >> 39);
+    }
+
+    function founderTraitIndex(uint64 traits) internal view returns (uint64) {
+        return uint64((bytes8(traits) & founderMask) >> 38);
+    }
+
+    function backgroundTraitIndex(uint64 traits) internal view returns (uint64) {
+        return uint64((bytes8(traits) & backgroundMask) >> 34);
+    }
+
+    function headTraitIndex(uint64 traits) internal view returns (uint64) {
+        return uint64((bytes8(traits) & headMask) >> 28);
+    }
+
+    function faceTraitIndex(uint64 traits) internal view returns (uint64) {
+        return uint64((bytes8(traits) & faceMask) >> 27);
+    }
+
+    function chestTraitIndex(uint64 traits) internal view returns (uint64) {
+        return uint64((bytes8(traits) & chestMask) >> 22);
+    }
+
+    function poseTraitIndex(uint64 traits) internal view returns (uint64) {
+        return uint64((bytes8(traits) & poseMask) >> 20);
+    }
+
+    function legsTraitIndex(uint64 traits) internal view returns (uint64) {
+        return uint64((bytes8(traits) & legsMask) >> 16);
+    }
+
+    function bootsTraitIndex(uint64 traits) internal view returns (uint64) {
+        return uint64((bytes8(traits) & bootsMask) >> 12);
+    }
+
+    function accessoriesTraitIndex(uint64 traits) internal view returns (uint64) {
+        return uint64((bytes8(traits) & accessoriesMask) >> 8);
+    }
+
+    function lhandTraitIndex(uint64 traits) internal view returns (uint64) {
+        return uint64((bytes8(traits) & lHandMask) >> 3);
+    }
+
+    function rhandTraitIndex(uint64 traits) internal view returns (uint64) {
+        return uint64((bytes8(traits) & rHandMask));
     }
 }
