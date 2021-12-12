@@ -11,19 +11,18 @@ const encoding = parseInt(traitEncoding, 2);
 const traitEncoding2 = '011001110010010100010000100011100000110000';
 const encoding2 = parseInt(traitEncoding2, 2);
 
-
-
 const traitEncodingForFounderTest = '100001110010010100011000100011100000110001';
 const founderEncodingTest = parseInt(traitEncodingForFounderTest, 2);
 
 async function deployContract() {
+    const [deployer] = await ethers.getSigners();
     const MeVerse = await ethers.getContractFactory(contractName);
 
     const name = 'TestOwner';
     const symbol = 'TO';
     const baseURI = "https://test.io/";
 
-    const mintable = await MeVerse.deploy(name, symbol, baseURI);
+    const mintable = await MeVerse.deploy(name, symbol, baseURI, [deployer.address]);
     return mintable;
 }
 
@@ -95,15 +94,18 @@ describe("Meridian contract tests", function (){
         expect(await mintable.tokenURI(tokenId)).to.equal(baseURI + tokenId);
     });
 
-    it("Should revert free mint if minter is not in mint list", async function() {
+    it("Should return if wallet is in free minter list", async function() {
+        const [deployer] = await ethers.getSigners();
+
         const mintable = await deployContract();
-        await expect(mintable.freeMint(encoding)).to.be.reverted;
+        expect(await mintable.freeMintAddr(deployer.address)).to.equal(1);
     });
 
     it("Should free mint if minter is in mint list", async function() {
         const [deployer] = await ethers.getSigners();
 
         const mintable = await deployContract();
+
         await mintable.setFreeMinter(deployer.address);
         await mintable.freeMint(encoding);
 
@@ -188,13 +190,43 @@ describe("Meridian contract tests", function (){
         expect(founderFlag.toNumber()).to.equal(1);
     });
 
-    // Potential trait encoding test
+    it("Should revert transaction if existing combination exists", async function() {
+        const mintable = await deployContract();
 
-    // it("Should return correct value", async function() {
-    //     const mintable = await deployContract();
-    //     const encoding = parseInt(traitEncoding, 2);
-    //     const res = await mintable.groupTraitIndex(encoding);
+        await mintable.mint(encoding, {value: ethers.utils.parseEther("0.07")});
 
-    //     expect(res.toNumber()).to.equal(4);
-    // });
+        await expect(mintable.mint(encoding, {value: ethers.utils.parseEther("0.07")})).to.be.reverted;
+    });
+
+    it ("Should revert transaction if right hand combination is invalid", async function() {
+        const mintable = await deployContract();
+
+        const group1pose1 = '000101110010010100010100100011100000110111';
+        const firstEncoding = parseInt(group1pose1, 2);
+        await expect(mintable.mint(firstEncoding, {value: ethers.utils.parseEther("0.07")})).to.be.reverted;
+
+        const group0pose2 = '000101110010010100011000100011100000110111';
+        const secondEncoding = parseInt(group0pose2, 2);
+        await expect(mintable.mint(secondEncoding, {value: ethers.utils.parseEther("0.07")})).to.be.reverted;
+
+        const group1pose2 = '001101110010010100011000100011100000110111';
+        const thirdEncoding = parseInt(group1pose2, 2);
+        await expect(mintable.mint(thirdEncoding, {value: ethers.utils.parseEther("0.07")})).to.be.reverted;
+
+        const group2pose2 = '010101110010010100011000100011100000110111';
+        const fourthEncoding = parseInt(group2pose2, 2);
+        await expect(mintable.mint(fourthEncoding, {value: ethers.utils.parseEther("0.07")})).to.be.reverted;
+
+        const group3pose1 = '011101110010010100010100100011100000110111';
+        const fifthEncoding = parseInt(group3pose1, 2);
+        await expect(mintable.mint(fifthEncoding, {value: ethers.utils.parseEther("0.07")})).to.be.reverted;
+
+        const group3pose2 = '011101110010010100011000100011100000110111';
+        const sixthEncoding = parseInt(group3pose2, 2);
+        await expect(mintable.mint(sixthEncoding, {value: ethers.utils.parseEther("0.07")})).to.be.reverted;
+
+        const group4pose2 = '100101110010010100011000100011100000110111';
+        const seventhEncoding = parseInt(group4pose2, 2);
+        await expect(mintable.mint(seventhEncoding, {value: ethers.utils.parseEther("0.07")})).to.be.reverted;
+    });
 });

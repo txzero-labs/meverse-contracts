@@ -1,9 +1,5 @@
 // SPDX-License-Identifier: MIT
 
-// TODO: 
-// traits validation 
-// existing combination tests
-
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -59,9 +55,13 @@ contract Meridian is ERC721, Ownable {
     constructor(
         string memory _collectionName, 
         string memory _collectionSymbol, 
-        string memory _initMetadataURI
+        string memory _initMetadataURI,
+        address[] memory freeMinterAddresses
         ) ERC721(_collectionName, _collectionSymbol) {
             baseMetadataURI = _initMetadataURI;
+            for (uint i=0; i<freeMinterAddresses.length; i++) {
+                freeMintAddr[freeMinterAddresses[i]] = 1;
+            }
         }
 
     function _baseURI() internal view virtual override returns (string memory) {
