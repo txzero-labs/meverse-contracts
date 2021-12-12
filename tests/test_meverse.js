@@ -1,4 +1,5 @@
 const { expect } = require('chai');
+const { access } = require('fs');
 const { ethers } = require('hardhat');
 
 const contractName = "Meridian";
@@ -143,6 +144,7 @@ describe("Meridian contract tests", function (){
         const chest = await mintable.chestMap(17);
         const head = await mintable.headMap(9);
         const group = await mintable.groupMap(4);
+        const accessories = await mintable.accessoriesMap(8);
 
         // check for 0
         const non_existing_background = await mintable.backgroundMap(2);
@@ -154,6 +156,7 @@ describe("Meridian contract tests", function (){
         expect(chest.toNumber()).to.equal(1);
         expect(head.toNumber()).to.equal(1);
         expect(group.toNumber()).to.equal(1);
+        expect(accessories.toNumber()).to.equal(1);
 
         expect(non_existing_background.toNumber()).to.equal(0);
     });

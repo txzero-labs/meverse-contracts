@@ -47,6 +47,7 @@ contract Meridian is ERC721, Ownable {
     mapping(uint64 => uint64) public bootsMap;
     mapping(uint64 => uint64) public handMap;
     mapping(uint64 => uint64) public backgroundMap;
+    mapping(uint64 => uint64) public accessoriesMap;
 
     // minted traits and combinations
     mapping(uint256 => bytes8) public tokenTraits;
@@ -184,6 +185,7 @@ contract Meridian is ERC721, Ownable {
         bootsMap[bootsTrait]++;
         handMap[lhandTrait]++;
         backgroundMap[backgroundTrait]++;
+        accessoriesMap[accessoriesTrait]++;
 
         tokenTraits[tokenId] = bytes8(traits);
         existingCombinations[traits] = 1;
@@ -274,6 +276,7 @@ contract Meridian is ERC721, Ownable {
         bootsMap[bootsTrait]++;
         handMap[lhandTrait]++;
         backgroundMap[backgroundTrait]++;
+        accessoriesMap[accessoriesTrait]++;
 
         tokenTraits[tokenId] = bytes8(traits);
         existingCombinations[traits] = 1;
