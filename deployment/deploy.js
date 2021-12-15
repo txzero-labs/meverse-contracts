@@ -1,5 +1,8 @@
+const dotenv = require("dotenv");
 const { ethers, hardhatArguments } = require('hardhat');
 const fs = require("fs");
+
+dotenv.config();
 
 
 const deploymentDetails = () => {
@@ -14,7 +17,9 @@ const deploymentDetails = () => {
 async function main() {
     const deployDetails = deploymentDetails();
     const [deployer] = await ethers.getSigners();
-    const freeMinterAddresses = [deployer.address];
+    const freeMinterAddresses = process.env.FREE_MINT_ADDRESSES.split(",");
+
+    console.log("Free minters:" + freeMinterAddresses);
 
     console.log(`Deploying contract with account: ${deployer.address}`);
     const balance = await deployer.getBalance();
