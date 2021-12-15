@@ -115,82 +115,8 @@ contract Meridian is ERC721, Ownable {
             require(msg.value >= cost * mintAmount, "Not enough funds to mind token.");
         }
 
-        if ((mintedNFTs + 1) % 10 == 0) {
-            founders++;
-            traits = setFounderTrait(traits);
-        }
-
-        // decode 
-        uint64 groupTrait = groupTraitIndex(traits);
-        uint64 headTrait = headTraitIndex(traits);
-        uint64 chestTrait = chestTraitIndex(traits);
-        uint64 legsTrait = legsTraitIndex(traits);
-        uint64 bootsTrait = bootsTraitIndex(traits);
-        uint64 lhandTrait = lhandTraitIndex(traits);
-        uint64 rhandTrait = rhandTraitIndex(traits);
-        uint64 poseTrait = poseTraitIndex(traits);
-        uint64 accessoriesTrait = accessoriesTraitIndex(traits);
-        uint64 faceTrait = faceTraitIndex(traits);
-        uint64 backgroundTrait = backgroundTraitIndex(traits);
-
-        // right hand validation
-        if (groupTrait == 0 && poseTrait == 1 && rhandTrait > 3) {
-            revert("Right hand item not valid for combination of group and pose.");
-        }
-
-        if (groupTrait == 0 && poseTrait == 2 && rhandTrait > 1) {
-            revert("Right hand item not valid for combination of group and pose.");
-        }
-
-        if (groupTrait == 1 && poseTrait == 2 && rhandTrait > 4) {
-            revert("Right hand item not valid for combination of group and pose.");
-        }
-
-        if (groupTrait == 2 && poseTrait == 2 && rhandTrait > 4) {
-            revert("Right hand item not valid for combination of group and pose.");
-        }
-
-        if (groupTrait == 3 && poseTrait == 1 && rhandTrait > 6) {
-            revert("Right hand item not valid for combination of group and pose.");
-        }
-
-        if (groupTrait == 3 && poseTrait == 2 && rhandTrait > 3) {
-            revert("Right hand item not valid for combination of group and pose.");
-        }
-
-        if (groupTrait == 4 && poseTrait == 2 && rhandTrait > 3) {
-            revert("Right hand item not valid for combination of group and pose.");
-        }
-
-        // traits validation
-        require(groupTrait <= 4 && groupTrait >= 0, "Group trait not in required range.");
-        require(headTrait <= 38 && headTrait >= 0, "Head trait not in required range.");
-        require(chestTrait <= 18 && chestTrait >= 0, "Chest trait not in required range.");
-        require(legsTrait <= 14 && legsTrait >= 0, "Legs trait not in required range.");
-        require(bootsTrait <= 14 && bootsTrait >= 0, "Boots trait not in required range.");
-        require(lhandTrait <= 28 && lhandTrait >= 0, "Left hand trait not in required range.");
-        require(rhandTrait <= 7 && rhandTrait >= 0, "Right hand trait not in required range.");
-        require(backgroundTrait <= 10 && backgroundTrait >= 0, "Background trait not in required range.");
-        require(poseTrait <= 2 && poseTrait >= 0, "Pose trait not in required range.");
-        require(faceTrait <= 1 && faceTrait >= 0, "Face trait not in required range.");
-        require(accessoriesTrait <= 9 && accessoriesTrait >= 0, "Accessories trait not in required range.");
-
+        internalMint(traits);
         _safeMint(msg.sender, tokenId);
-
-        // increment maps
-        groupMap[groupTrait]++;
-        headMap[headTrait]++;
-        chestMap[chestTrait]++;
-        legsMap[legsTrait]++;
-        bootsMap[bootsTrait]++;
-        handMap[lhandTrait]++;
-        backgroundMap[backgroundTrait]++;
-        accessoriesMap[accessoriesTrait]++;
-
-        tokenTraits[tokenId] = bytes8(traits);
-        existingCombinations[traits] = 1;
-
-        walletToToken[msg.sender] = tokenId;
         mintedNFTs++;
         tokenId++;
     }
@@ -206,7 +132,27 @@ contract Meridian is ERC721, Ownable {
         require(mintedNFTs + mintAmount <= availableNFTs, "Maximum available NFTs exceeded.");
         require(balanceOf(msg.sender) <= maxTokensPerWallet, "Maximum tokens to mint reached.");
 
-        if (mintedNFTs % 10 == 0) {
+        internalMint(traits);
+        _safeMint(msg.sender, tokenId);
+        mintedNFTs++;
+        tokenId++;
+    }
+
+    function contractBalance() external view onlyOwner returns (uint256) {
+        return address(this).balance;
+    }
+
+    function withdraw() public onlyOwner() {
+        (bool os, ) = payable(owner()).call{ value: address(this).balance }("");
+        require(os);
+    }
+
+    function setFounderTrait(uint64 traits) internal view returns (uint64) {
+        return uint64(bytes8(traits) | founderMask);
+    }
+
+    function internalMint(uint64 traits) internal {
+        if ((mintedNFTs + 1) % 10 == 0) {
             founders++;
             traits = setFounderTrait(traits);
         }
@@ -266,9 +212,6 @@ contract Meridian is ERC721, Ownable {
         require(faceTrait <= 1 && faceTrait >= 0, "Face trait not in required range.");
         require(accessoriesTrait <= 9 && accessoriesTrait >= 0, "Accessories trait not in required range.");
 
-        _safeMint(msg.sender, tokenId);
-
-        // increment maps
         groupMap[groupTrait]++;
         headMap[headTrait]++;
         chestMap[chestTrait]++;
@@ -282,16 +225,6 @@ contract Meridian is ERC721, Ownable {
         existingCombinations[traits] = 1;
 
         walletToToken[msg.sender] = tokenId;
-        mintedNFTs++;
-        tokenId++;
-    }
-
-    function contractBalance() external view onlyOwner returns (uint256) {
-        return address(this).balance;
-    }
-
-    function setFounderTrait(uint64 traits) internal view returns (uint64) {
-        return uint64(bytes8(traits) | founderMask);
     }
 
     // Internal trait decoding
