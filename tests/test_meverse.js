@@ -232,4 +232,16 @@ describe("Meridian contract tests", function (){
         const seventhEncoding = parseInt(group4pose2, 2);
         await expect(mintable.mint(seventhEncoding, {value: ethers.utils.parseEther("0.07")})).to.be.reverted;
     });
+
+    it ("Should transfer contract balance", async function() {
+        const mintable = await deployContract();
+        await mintable.mint(encoding, {value: ethers.utils.parseEther("0.07")});
+        const balance = await mintable.contractBalance();
+        console.log(balance);
+
+        await mintable.withdraw();
+        const newBalance = await mintable.contractBalance();
+        console.log(newBalance);
+        expect(newBalance).to.equal(0);
+    });
 });

@@ -142,9 +142,8 @@ contract Meridian is ERC721, Ownable {
         return address(this).balance;
     }
 
-    function withdraw() public onlyOwner() {
-        (bool os, ) = payable(owner()).call{ value: address(this).balance }("");
-        require(os);
+    function withdraw() public payable onlyOwner () {
+        payable(owner()).transfer(address(this).balance);
     }
 
     function setFounderTrait(uint64 traits) internal view returns (uint64) {
