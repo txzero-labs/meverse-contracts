@@ -63,6 +63,7 @@ contract Meridian is ERC721, Ownable {
             for (uint i=0; i<freeMinterAddresses.length; i++) {
                 freeMintAddr[freeMinterAddresses[i]] = 1;
             }
+            preSaleActive = true;
         }
 
     function _baseURI() internal view virtual override returns (string memory) {

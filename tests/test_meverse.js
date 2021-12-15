@@ -1,5 +1,4 @@
 const { expect } = require('chai');
-const { access } = require('fs');
 const { ethers } = require('hardhat');
 
 const contractName = "Meridian";
@@ -24,6 +23,7 @@ async function deployContract() {
     const baseURI = "https://test.io/";
 
     const mintable = await MeVerse.deploy(name, symbol, baseURI, [deployer.address]);
+    await mintable.setPreSaleActive(false);
     return mintable;
 }
 
@@ -237,11 +237,9 @@ describe("Meridian contract tests", function (){
         const mintable = await deployContract();
         await mintable.mint(encoding, {value: ethers.utils.parseEther("0.07")});
         const balance = await mintable.contractBalance();
-        console.log(balance);
 
         await mintable.withdraw();
         const newBalance = await mintable.contractBalance();
-        console.log(newBalance);
         expect(newBalance).to.equal(0);
     });
 });
