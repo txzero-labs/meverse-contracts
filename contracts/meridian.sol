@@ -106,12 +106,12 @@ contract Meridian is ERC721, Ownable {
 
         if (preSaleActive) {
             require(mintedNFTs + mintAmount <= preSaleNFTs, "Maximum available NFTs for presale exceeded.");
-            require(balanceOf(msg.sender) <= preSaleMaxTokens, "Maximum tokens to mint reached for presale.");
+            require(balanceOf(msg.sender) < preSaleMaxTokens, "Maximum tokens to mint reached for presale.");
 
             require(msg.value >= preSaleCost * mintAmount, "Not enough funds to mind token.");
         } else {
             require(mintedNFTs + mintAmount <= availableNFTs, "Maximum available NFTs exceeded.");
-            require(balanceOf(msg.sender) <= maxTokensPerWallet, "Maximum tokens to mint reached.");
+            require(balanceOf(msg.sender) < maxTokensPerWallet, "Maximum tokens to mint reached.");
 
             require(msg.value >= cost * mintAmount, "Not enough funds to mind token.");
         }
@@ -131,7 +131,7 @@ contract Meridian is ERC721, Ownable {
 
         uint8 mintAmount = 1;
         require(mintedNFTs + mintAmount <= availableNFTs, "Maximum available NFTs exceeded.");
-        require(balanceOf(msg.sender) <= maxTokensPerWallet, "Maximum tokens to mint reached.");
+        require(balanceOf(msg.sender) < maxTokensPerWallet, "Maximum tokens to mint reached.");
 
         internalMint(traits);
         _safeMint(msg.sender, tokenId);

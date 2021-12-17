@@ -56,12 +56,12 @@ describe("Meridian contract tests", function (){
 
     it("Should revert transaction when wallet exceedes amount of mint", async function () {
         const mintable = await deployContract();
-        for (i = 0;i < 9;i++) {
+        for (i = 0;i < 8;i++) {
             await mintable.mint(encoding2 + i, {value: ethers.utils.parseEther("1.0")});
         }
 
-        expect(await mintable.availableTokens()).to.equal(9991);
-        await expect(mintable.mint(encoding + 10, {value: ethers.utils.parseEther("1.0")})).to.be.reverted;
+        expect(await mintable.availableTokens()).to.equal(9992);
+        await expect(mintable.mint(encoding + 9, {value: ethers.utils.parseEther("1.0")})).to.be.reverted;
 
     });
 
